@@ -1,7 +1,7 @@
 [package]
 name = "tauri-plugin-user-input"
 version = "0.1.0"
-authors = [ "You" ]
+authors = ["You"]
 description = ""
 edition = "2021"
 rust-version = "1.77.2"
@@ -12,6 +12,9 @@ links = "tauri-plugin-user-input"
 tauri = { version = "2.1.0" }
 serde = "1.0"
 thiserror = "2"
+rdev = { git = "https://github.com/kunkunsh/rdev.git", branch = "kunkun", features = [
+    "serialize",
+] }
 
 [build-dependencies]
 tauri-plugin = { version = "2.0.2", features = ["build"] }
