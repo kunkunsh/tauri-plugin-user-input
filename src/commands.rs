@@ -25,6 +25,7 @@ pub(crate) async fn start_listening<R: Runtime>(
 pub(crate) async fn stop_listening<R: Runtime>(
     app: AppHandle<R>,
 ) -> std::result::Result<(), String> {
+    println!("stop_listening command called");
     app.user_input()
         .stop_listening()
         .await

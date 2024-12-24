@@ -18,9 +18,9 @@
       listen("user-input", (event) => {
         // console.log(Object.keys(event.payload.event_type));
 
-        if (!Object.keys(event.payload.event_type).includes("MouseMove")) {
-          console.log("Received event", event.payload);
-        }
+        // if (!Object.keys(event.payload.event_type).includes("MouseMove")) {
+        console.log("Received event", event.payload);
+        // }
       });
     }}
   >
@@ -28,9 +28,14 @@
   </button>
   <button
     on:click={() => {
-      stopListening().then(() => {
-        console.log("Stopped listening");
-      });
+      console.log("stopListening clicked");
+      stopListening()
+        .then(() => {
+          console.log("Stopped listening");
+        })
+        .catch((err) => {
+          console.error("Error stopping listening", err);
+        });
     }}
   >
     Stop listening
