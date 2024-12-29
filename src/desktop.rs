@@ -122,7 +122,6 @@ impl<R: Runtime> UserInput<R> {
     pub async fn set_event_types(&self, event_types: Vec<models::EventType>) -> Result<(), Error> {
         let mut _event_types = self.event_types.lock().unwrap();
         *_event_types = event_types.into_iter().collect();
-        println!("event_types: {:?}", _event_types);
         Ok(())
     }
 

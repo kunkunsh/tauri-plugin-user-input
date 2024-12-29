@@ -1,7 +1,5 @@
 <script lang="ts">
   import "./app.css";
-  // import { listen } from "@tauri-apps/api/event";
-  import { onMount } from "svelte";
   import {
     EventType,
     InputEvent,
@@ -43,13 +41,6 @@
       }).then(() => {
         console.log("Started listening");
       });
-      // listen("user-input", (event) => {
-      //   // console.log(Object.keys(event.payload.event_type));
-
-      //   // if (!Object.keys(event.payload.event_type).includes("MouseMove")) {
-      //   console.log("Received event", event.payload);
-      //   // }
-      // });
     }}
   >
     Start listening

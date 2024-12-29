@@ -24,9 +24,20 @@ export const InputEvent = v.object({
     v.number(),
     v.transform((n) => new Date(n))
   ),
-  button: v.nullable(v.enum(Button)),
-  x: v.nullable(v.number()),
-  y: v.nullable(v.number()),
+  button: v.optional(v.enum(Button)),
+  position: v.optional(
+    v.object({
+      x: v.number(),
+      y: v.number(),
+    })
+  ),
+  deltaPosition: v.optional(
+    v.object({
+      deltaX: v.number(),
+      deltaY: v.number(),
+    })
+  ),
+  key: v.optional(v.string()),
 });
 export type InputEvent = v.InferOutput<typeof InputEvent>;
 

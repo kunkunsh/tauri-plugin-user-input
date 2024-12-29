@@ -21,10 +21,23 @@ pub struct PingResponse {
 #[serde(rename_all = "camelCase")]
 pub struct InputEvent {
     pub event_type: EventType,
-    pub time: u128, // tv_sec: time in ms similar to JS Date.now()
-    pub button: Option<rdev::Button>,
-    pub x: Option<i64>,
-    pub y: Option<i64>,
+    pub time: u128,
+    #[serde(flatten)]
+    pub data: InputEventData,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum InputEventData {
+    Button(rdev::Button),
+    Position { x: f64, y: f64 },
+    DeltaPosition { 
+        #[serde(rename = "deltaX")]
+        delta_x: i64, 
+        #[serde(rename = "deltaY")] 
+        delta_y: i64 
+    },
+    Key(rdev::Key),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
@@ -39,9 +52,19 @@ pub enum EventType {
 
 impl From<rdev::Event> for InputEvent {
     fn from(event: rdev::Event) -> Self {
-        let mut button: Option<rdev::Button> = None;
-        let mut xx: Option<i64> = None;
-        let mut yy: Option<i64> = None;
+        let data = match event.event_type {
+            rdev::EventType::ButtonPress(btn) | rdev::EventType::ButtonRelease(btn) => {
+                InputEventData::Button(btn)
+            }
+            rdev::EventType::MouseMove { x, y } => InputEventData::Position { x, y },
+            rdev::EventType::Wheel { delta_x, delta_y } => {
+                InputEventData::DeltaPosition { delta_x, delta_y }
+            }
+            rdev::EventType::KeyPress(key) | rdev::EventType::KeyRelease(key) => {
+                InputEventData::Key(key)
+            }
+        };
+
         let event_type = match event.event_type {
             rdev::EventType::KeyPress(_) => EventType::KeyPress,
             rdev::EventType::KeyRelease(_) => EventType::KeyRelease,
@@ -50,26 +73,11 @@ impl From<rdev::Event> for InputEvent {
             rdev::EventType::MouseMove { .. } => EventType::MouseMove,
             rdev::EventType::Wheel { .. } => EventType::Wheel,
         };
-        match event.event_type {
-            rdev::EventType::ButtonPress(btn) | rdev::EventType::ButtonRelease(btn) => {
-                button = Some(btn);
-            }
-            rdev::EventType::MouseMove { x, y } => {
-                xx = Some(x as i64);
-                yy = Some(y as i64);
-            }
-            rdev::EventType::Wheel { delta_x, delta_y } => {
-                xx = Some(delta_x);
-                yy = Some(delta_y);
-            }
-            _ => {}
-        }
+
         Self {
             event_type,
             time: event.time.duration_since(UNIX_EPOCH).unwrap().as_millis(),
-            button,
-            x: xx,
-            y: yy,
+            data,
         }
     }
 }
