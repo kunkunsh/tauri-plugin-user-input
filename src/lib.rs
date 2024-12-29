@@ -36,9 +36,16 @@ impl<R: Runtime, T: Manager<R>> crate::UserInputExt<R> for T {
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("user-input")
         .invoke_handler(tauri::generate_handler![
-            commands::ping,
             commands::start_listening,
             commands::stop_listening,
+            commands::key,
+            commands::text,
+            commands::button,
+            commands::move_mouse,
+            commands::scroll,
+            commands::is_listening,
+            commands::set_window_labels,
+            commands::set_event_types,
         ])
         .setup(|app, api| {
             #[cfg(mobile)]

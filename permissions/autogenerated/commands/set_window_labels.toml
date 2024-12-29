@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-set-window-labels"
+description = "Enables the set_window_labels command without any pre-configured scope."
+commands.allow = ["set_window_labels"]
+
+[[permission]]
+identifier = "deny-set-window-labels"
+description = "Denies the set_window_labels command without any pre-configured scope."
+commands.deny = ["set_window_labels"]

@@ -1,0 +1,16 @@
+"$schema" = "schemas/schema.json"
+
+
+[[permission]]
+identifier = "all"
+description = "All Commands"
+commands.allow = [
+    "start_listening",
+    "stop_listening",
+    "set_window_labels",
+    "key",
+    "button",
+    "move_mouse",
+    "scroll",
+    "text",
+]

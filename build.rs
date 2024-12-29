@@ -1,4 +1,15 @@
-const COMMANDS: &[&str] = &["ping", "start_listening", "stop_listening"];
+const COMMANDS: &[&str] = &[
+    "start_listening",
+    "stop_listening",
+    "set_window_labels",
+    "set_event_types",
+    "is_listening",
+    "key",
+    "button",
+    "move_mouse",
+    "scroll",
+    "text",
+];
 
 fn main() {
     tauri_plugin::Builder::new(COMMANDS)

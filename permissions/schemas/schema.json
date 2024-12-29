@@ -295,14 +295,74 @@
       "type": "string",
       "oneOf": [
         {
-          "description": "Enables the ping command without any pre-configured scope.",
+          "description": "Enables the button command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-ping"
+          "const": "allow-button"
         },
         {
-          "description": "Denies the ping command without any pre-configured scope.",
+          "description": "Denies the button command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-ping"
+          "const": "deny-button"
+        },
+        {
+          "description": "Enables the is_listening command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-is-listening"
+        },
+        {
+          "description": "Denies the is_listening command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-is-listening"
+        },
+        {
+          "description": "Enables the key command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-key"
+        },
+        {
+          "description": "Denies the key command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-key"
+        },
+        {
+          "description": "Enables the move_mouse command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-move-mouse"
+        },
+        {
+          "description": "Denies the move_mouse command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-move-mouse"
+        },
+        {
+          "description": "Enables the scroll command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-scroll"
+        },
+        {
+          "description": "Denies the scroll command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-scroll"
+        },
+        {
+          "description": "Enables the set_event_types command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-event-types"
+        },
+        {
+          "description": "Denies the set_event_types command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-event-types"
+        },
+        {
+          "description": "Enables the set_window_labels command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-window-labels"
+        },
+        {
+          "description": "Denies the set_window_labels command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-window-labels"
         },
         {
           "description": "Enables the start_listening command without any pre-configured scope.",
@@ -323,6 +383,16 @@
           "description": "Denies the stop_listening command without any pre-configured scope.",
           "type": "string",
           "const": "deny-stop-listening"
+        },
+        {
+          "description": "Enables the text command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-text"
+        },
+        {
+          "description": "Denies the text command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-text"
         },
         {
           "description": "Default permissions for the plugin",

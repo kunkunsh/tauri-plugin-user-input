@@ -1,14 +1,21 @@
 use enigo::{Keyboard, Mouse};
 use rdev::{exit_grab, listen, EventType};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::time::SystemTime;
+use std::{
+    collections::{HashMap, HashSet},
+    str::FromStr,
+    sync::{Arc, Mutex},
+    time::SystemTime,
+};
 use tauri::{
-    async_runtime::{JoinHandle, Mutex},
-    plugin::PluginApi,
-    AppHandle, Emitter, Manager, Runtime,
+    async_runtime::JoinHandle, ipc::Channel, plugin::PluginApi, AppHandle, Emitter, Manager,
+    Runtime,
 };
 
-use crate::{models::*, Error};
+use crate::{
+    models::{self, *},
+    Error,
+};
 
 pub fn init<R: Runtime, C: DeserializeOwned>(
     app: &AppHandle<R>,
@@ -17,6 +24,9 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
     Ok(UserInput {
         app_handle: app.clone(),
         rdev_handle: Mutex::new(None),
+        window_labels: Arc::new(Mutex::new(vec![])),
+        event_types: Arc::new(Mutex::new(HashSet::new())),
+        on_event_channels: Arc::new(Mutex::new(HashMap::new())),
     })
 }
 
@@ -24,32 +34,13 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct UserInput<R: Runtime> {
     app_handle: AppHandle<R>,
     rdev_handle: Mutex<Option<JoinHandle<()>>>,
+    window_labels: Arc<Mutex<Vec<String>>>,
+    event_types: Arc<Mutex<HashSet<models::EventType>>>,
+    on_event_channels: Arc<Mutex<HashMap<u32, Channel<InputEvent>>>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct InputEvent {
-    pub event_type: String,
-    pub time: SystemTime,
-}
-
-impl From<rdev::Event> for InputEvent {
-    fn from(event: rdev::Event) -> Self {
-        let event_type = match event.event_type {
-            rdev::EventType::KeyPress(_) => "keypress",
-            rdev::EventType::KeyRelease(_) => "keyrelease",
-            rdev::EventType::ButtonPress(_) => "buttonpress",
-            rdev::EventType::ButtonRelease(_) => "buttonrelease",
-            rdev::EventType::MouseMove { .. } => "mousemove",
-            rdev::EventType::Wheel { .. } => "wheel",
-        }
-        .to_string();
-
-        Self {
-            event_type,
-            time: event.time,
-        }
-    }
+fn get_enigo() -> Result<enigo::Enigo, String> {
+    enigo::Enigo::new(&enigo::Settings::default()).map_err(|err| format!("Error: {:?}", err))
 }
 
 impl<R: Runtime> UserInput<R> {
@@ -59,109 +50,91 @@ impl<R: Runtime> UserInput<R> {
         })
     }
 
-    pub async fn start_listening(&self, window_labels: Vec<String>) -> Result<(), Error> {
+    pub async fn start_listening(&self, on_event: Channel<InputEvent>) -> Result<(), Error> {
+        let mut on_event_channels = self.on_event_channels.lock().unwrap();
+        let event_id = on_event.id();
+        on_event_channels.insert(event_id, on_event.clone());
+        drop(on_event_channels);
+
         // skip if rdev_handle is already set
-        let mut rdev_handle = self.rdev_handle.lock().await;
+        let mut rdev_handle = self.rdev_handle.lock().unwrap();
         if rdev_handle.is_some() {
             return Ok(());
         }
+
         let app_handle = self.app_handle.clone();
-        let window_labels = window_labels.clone();
+        let window_labels_clone = self.window_labels.clone();
+        let on_event_channels_clone = self.on_event_channels.clone();
+        let event_types_clone = self.event_types.clone();
         let handle = tauri::async_runtime::spawn(async move {
-            // let callback = move |event: rdev::Event| -> Option<rdev::Event> {
-            //     if window_labels.len() == 0 {
-            //         app_handle
-            //             .emit("user-input", InputEvent::from(event.clone()))
-            //             .unwrap();
-            //     } else {
-            //         for label in &window_labels {
-            //             app_handle
-            //                 .emit_to(label, "user-input", InputEvent::from(event.clone()))
-            //                 .unwrap();
-            //         }
-            //     }
-            //     Some(event)
-            // };
-            // if let Err(error) = rdev::listen(move |event: rdev::Event| {
-            #[cfg(target_os = "macos")]
             rdev::set_is_main_thread(false); // without this line, any key event will crash the app
             if let Err(error) = rdev::grab(move |event: rdev::Event| {
                 let event2 = event.clone();
-                if window_labels.len() == 0 {
-                    match event.event_type {
-                        EventType::KeyPress(_key) | EventType::KeyRelease(_key) => {
-                            /*  */
-                            println!(
-                                "name: {:?}, type: {:?}, code: {:#04X?}, scan: {:#06X?}",
-                                &event.unicode,
-                                &event.event_type,
-                                &event.platform_code,
-                                &event.position_code
-                            );
-                            app_handle.emit("user-input", event.clone()).unwrap();
-                            app_handle
-                                .emit("user-input", InputEvent::from(event.clone()))
-                                .unwrap();
-                        }
-                        EventType::ButtonPress(_button) | EventType::ButtonRelease(_button) => {
-                            println!("Button: {:?}", _button);
-                            app_handle
-                                .emit("user-input", InputEvent::from(event.clone()))
-                                .unwrap();
-                            app_handle.emit("user-input", event).unwrap();
-                        }
-                        _ => {}
-                    };
-                    // app_handle.emit("user-input", event).unwrap();
-                    // app_handle
-                    //     .emit("user-input", InputEvent::from(event.clone()))
-                    //     .unwrap();
-                } else {
-                    for label in &window_labels {
-                        app_handle
-                            .emit_to(label, "user-input", event.clone())
-                            .unwrap();
+                // if window_labels.len() == 0 {
+                let evt = InputEvent::from(event.clone());
+                let event_types = event_types_clone.lock().unwrap();
+                // println!("event_types: {:?}", event_types);
+                if event_types.contains(&evt.event_type) {
+                    let window_labels = window_labels_clone.lock().unwrap();
+                    for win_label in window_labels.iter() {
+                        app_handle.emit_to(win_label, "user-input", &evt).unwrap();
                     }
+                    drop(window_labels);
+                    let channels = on_event_channels_clone.lock().unwrap();
+                    for channel in channels.values() {
+                        channel.send(evt.clone()).unwrap();
+                    }
+                    drop(channels);
                 }
                 Some(event2)
             }) {
                 println!("Error: {:?}", error)
             }
         });
+
         *rdev_handle = Some(handle);
-        println!("rdev_handle: {:?}", rdev_handle);
         Ok(())
     }
 
     pub async fn stop_listening(&self) -> Result<(), rdev::GrabError> {
-        println!("stop_listening in desktop.rs");
         let is_grabbed = rdev::is_grabbed();
-        println!("is_grabbed: {:?}", is_grabbed);
-        println!("exit_grab");
-        rdev::exit_grab()?;
-        let is_grabbed = rdev::is_grabbed();
-        println!("is_grabbed: {:?}", is_grabbed);
-        let mut rdev_handle = self.rdev_handle.lock().await;
-        println!("rdev_handle: {:?}", rdev_handle);
-        // rdev::stop_listen();
-        let is_grabbed = rdev::is_grabbed();
-        println!("is_grabbed: {:?}", is_grabbed);
+        if is_grabbed {
+            rdev::exit_grab()?;
+        }
+        let mut rdev_handle = self.rdev_handle.lock().unwrap();
         if let Some(handle) = rdev_handle.take() {
             handle.abort();
         }
+        let mut on_event_channels = self.on_event_channels.lock().unwrap();
+        // remove all channels
+        on_event_channels.clear();
+        assert_eq!(on_event_channels.len(), 0);
         assert!(rdev_handle.is_none());
         Ok(())
     }
 
+    pub async fn set_window_labels(&self, labels: Vec<String>) -> Result<(), Error> {
+        let mut window_labels = self.window_labels.lock().unwrap();
+        *window_labels = labels;
+        Ok(())
+    }
+
+    pub async fn set_event_types(&self, event_types: Vec<models::EventType>) -> Result<(), Error> {
+        let mut _event_types = self.event_types.lock().unwrap();
+        *_event_types = event_types.into_iter().collect();
+        println!("event_types: {:?}", _event_types);
+        Ok(())
+    }
+
+    pub fn is_listening(&self) -> bool {
+        rdev::is_grabbed()
+    }
     /* -------------------------------------------------------------------------- */
     /*                                 enigo APIs                                 */
     /* -------------------------------------------------------------------------- */
-    pub fn get_enigo(&self) -> Result<enigo::Enigo, String> {
-        enigo::Enigo::new(&enigo::Settings::default()).map_err(|err| format!("Error: {:?}", err))
-    }
 
     pub fn key(&self, key: enigo::Key, direction: enigo::Direction) -> Result<(), String> {
-        let mut _enigo = self.get_enigo()?;
+        let mut _enigo = get_enigo()?;
         _enigo
             .key(key, direction)
             .map_err(|err| format!("Error: {:?}", err))?;
@@ -169,7 +142,7 @@ impl<R: Runtime> UserInput<R> {
     }
 
     pub fn text(&self, text: &str) -> Result<(), String> {
-        let mut _enigo = self.get_enigo()?;
+        let mut _enigo = get_enigo()?;
         _enigo
             .text(text)
             .map_err(|err| format!("Error: {:?}", err))?;
@@ -177,7 +150,7 @@ impl<R: Runtime> UserInput<R> {
     }
 
     pub fn button(&self, button: enigo::Button, direction: enigo::Direction) -> Result<(), String> {
-        let mut _enigo = self.get_enigo()?;
+        let mut _enigo = get_enigo()?;
         _enigo
             .button(button, direction)
             .map_err(|err| format!("Error: {:?}", err))?;
@@ -185,7 +158,7 @@ impl<R: Runtime> UserInput<R> {
     }
 
     pub fn move_mouse(&self, x: i32, y: i32, coordinate: enigo::Coordinate) -> Result<(), String> {
-        let mut _enigo = self.get_enigo()?;
+        let mut _enigo = get_enigo()?;
         _enigo
             .move_mouse(x, y, coordinate)
             .map_err(|err| format!("Error: {:?}", err))?;
@@ -193,7 +166,7 @@ impl<R: Runtime> UserInput<R> {
     }
 
     pub fn scroll(&self, length: i32, axis: enigo::Axis) -> Result<(), String> {
-        let mut _enigo = self.get_enigo()?;
+        let mut _enigo = get_enigo()?;
         _enigo
             .scroll(length, axis)
             .map_err(|err| format!("Error: {:?}", err))?;

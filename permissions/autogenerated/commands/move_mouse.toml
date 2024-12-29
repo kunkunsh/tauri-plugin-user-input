@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-move-mouse"
+description = "Enables the move_mouse command without any pre-configured scope."
+commands.allow = ["move_mouse"]
+
+[[permission]]
+identifier = "deny-move-mouse"
+description = "Denies the move_mouse command without any pre-configured scope."
+commands.deny = ["move_mouse"]

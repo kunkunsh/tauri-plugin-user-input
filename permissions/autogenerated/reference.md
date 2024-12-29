@@ -2,9 +2,16 @@
 
 Default permissions for the plugin
 
-- `allow-ping`
 - `allow-start-listening`
 - `allow-stop-listening`
+- `allow-set-window-labels`
+- `allow-set-event-types`
+- `allow-is-listening`
+- `allow-key`
+- `allow-button`
+- `allow-move-mouse`
+- `allow-scroll`
+- `allow-text`
 
 ## Permission Table
 
@@ -18,12 +25,12 @@ Default permissions for the plugin
 <tr>
 <td>
 
-`user-input:allow-ping`
+`user-input:allow-button`
 
 </td>
 <td>
 
-Enables the ping command without any pre-configured scope.
+Enables the button command without any pre-configured scope.
 
 </td>
 </tr>
@@ -31,12 +38,168 @@ Enables the ping command without any pre-configured scope.
 <tr>
 <td>
 
-`user-input:deny-ping`
+`user-input:deny-button`
 
 </td>
 <td>
 
-Denies the ping command without any pre-configured scope.
+Denies the button command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:allow-is-listening`
+
+</td>
+<td>
+
+Enables the is_listening command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:deny-is-listening`
+
+</td>
+<td>
+
+Denies the is_listening command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:allow-key`
+
+</td>
+<td>
+
+Enables the key command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:deny-key`
+
+</td>
+<td>
+
+Denies the key command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:allow-move-mouse`
+
+</td>
+<td>
+
+Enables the move_mouse command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:deny-move-mouse`
+
+</td>
+<td>
+
+Denies the move_mouse command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:allow-scroll`
+
+</td>
+<td>
+
+Enables the scroll command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:deny-scroll`
+
+</td>
+<td>
+
+Denies the scroll command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:allow-set-event-types`
+
+</td>
+<td>
+
+Enables the set_event_types command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:deny-set-event-types`
+
+</td>
+<td>
+
+Denies the set_event_types command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:allow-set-window-labels`
+
+</td>
+<td>
+
+Enables the set_window_labels command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:deny-set-window-labels`
+
+</td>
+<td>
+
+Denies the set_window_labels command without any pre-configured scope.
 
 </td>
 </tr>
@@ -89,6 +252,32 @@ Enables the stop_listening command without any pre-configured scope.
 <td>
 
 Denies the stop_listening command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:allow-text`
+
+</td>
+<td>
+
+Enables the text command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`user-input:deny-text`
+
+</td>
+<td>
+
+Denies the text command without any pre-configured scope.
 
 </td>
 </tr>
