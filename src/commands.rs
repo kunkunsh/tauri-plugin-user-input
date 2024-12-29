@@ -1,7 +1,7 @@
 use tauri::ipc::Channel;
 use tauri::{command, AppHandle, Runtime};
 
-use crate::models::*;
+use crate::models::{self, *};
 use crate::UserInputExt;
 
 #[command]
@@ -9,7 +9,7 @@ pub(crate) async fn set_window_labels<R: Runtime>(
     app: AppHandle<R>,
     labels: Vec<String>,
 ) -> crate::Result<()> {
-    app.user_input().set_window_labels(labels).await?;
+    app.user_input().set_window_labels(labels)?;
     Ok(())
 }
 
@@ -18,7 +18,7 @@ pub(crate) async fn set_event_types<R: Runtime>(
     app: AppHandle<R>,
     event_types: Vec<EventType>,
 ) -> crate::Result<()> {
-    app.user_input().set_event_types(event_types).await?;
+    app.user_input().set_event_types(event_types)?;
     Ok(())
 }
 
@@ -32,7 +32,7 @@ pub(crate) async fn start_listening<R: Runtime>(
     app: AppHandle<R>,
     on_event: Channel<InputEvent>,
 ) -> crate::Result<()> {
-    app.user_input().start_listening(on_event).await?;
+    app.user_input().start_listening(on_event)?;
     Ok(())
 }
 
@@ -40,7 +40,6 @@ pub(crate) async fn start_listening<R: Runtime>(
 pub(crate) async fn stop_listening<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     app.user_input()
         .stop_listening()
-        .await
         .map_err(|_| "Failed to stop listening")?;
     Ok(())
 }
@@ -48,10 +47,16 @@ pub(crate) async fn stop_listening<R: Runtime>(app: AppHandle<R>) -> Result<(), 
 #[command]
 pub(crate) async fn key<R: Runtime>(
     app: AppHandle<R>,
-    key: enigo::Key,
-    direction: enigo::Direction,
+    key: rdev::Key,
+    evt_type: models::EventType,
+    delay_ms: Option<u64>,
 ) -> Result<(), String> {
-    app.user_input().key(key, direction)?;
+    if let Some(delay_ms) = delay_ms {
+        std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+    }
+    app.user_input()
+        .key(key, evt_type)
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 

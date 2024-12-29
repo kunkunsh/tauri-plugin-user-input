@@ -40,14 +40,26 @@ export function isListening() {
   return invoke(constructCommandKey("is_listening"));
 }
 
+// export async function key(direction: "Press" | "Release" | "Click", key: Key) {
+//   return await invoke(constructCommandKey("key"), {
+//     key: typeof key === "string" ? key : JSON.stringify(key),
+//     direction,
+//   });
+// }
 export async function key(
-  direction: "Pressed" | "Released" | "Clicked",
-  key: Key
+  evtType: "KeyPress" | "KeyRelease" | "KeyClick",
+  key: Key,
+  opts?: { delayMs?: number }
 ) {
   return await invoke(constructCommandKey("key"), {
-    key: JSON.stringify(key),
-    direction,
+    key: typeof key === "string" ? key : JSON.stringify(key),
+    evtType,
+    delayMs: opts?.delayMs,
   });
+}
+
+export async function selectAll() {
+  return await invoke(constructCommandKey("select_all"));
 }
 
 export function text(text: string) {

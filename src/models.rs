@@ -30,12 +30,15 @@ pub struct InputEvent {
 #[serde(rename_all = "camelCase")]
 pub enum InputEventData {
     Button(rdev::Button),
-    Position { x: f64, y: f64 },
-    DeltaPosition { 
+    Position {
+        x: f64,
+        y: f64,
+    },
+    DeltaPosition {
         #[serde(rename = "deltaX")]
-        delta_x: i64, 
-        #[serde(rename = "deltaY")] 
-        delta_y: i64 
+        delta_x: i64,
+        #[serde(rename = "deltaY")]
+        delta_y: i64,
     },
     Key(rdev::Key),
 }
@@ -44,8 +47,10 @@ pub enum InputEventData {
 pub enum EventType {
     KeyPress,
     KeyRelease,
+    KeyClick,
     ButtonPress,
     ButtonRelease,
+    ButtonClick,
     MouseMove,
     Wheel,
 }

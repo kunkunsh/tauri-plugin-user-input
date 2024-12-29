@@ -7,6 +7,7 @@
   ],
   "permissions": [
     "core:default",
-    "user-input:default"
+    "user-input:default",
+    "os:default"
   ]
 }

@@ -1,7 +1,7 @@
 {
   "name": "tauri-plugin-user-input-api",
   "version": "0.1.0",
-  "author": "You",
+  "author": "Huakun Shen",
   "description": "",
   "type": "module",
   "types": "./dist-js/index.d.ts",
