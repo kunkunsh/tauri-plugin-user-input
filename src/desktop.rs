@@ -1,6 +1,10 @@
 use enigo::{Keyboard, Mouse};
 use lazy_static::lazy_static;
-use rdev::{exit_grab, listen, EventType, SimulateError};
+#[cfg(target_os = "linux")]
+use rdev::start_grab_listen as start_grab;
+#[cfg(target_os = "macos")]
+use rdev::start_grab_listen as start_grab;
+use rdev::{EventType, SimulateError};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
@@ -75,14 +79,16 @@ impl<R: Runtime> UserInput<R> {
         let window_labels_clone = self.window_labels.clone();
         let on_event_channels_clone = self.on_event_channels.clone();
         let event_types_clone = self.event_types.clone();
+        println!("start listening");
         let handle = tauri::async_runtime::spawn(async move {
+            println!("start listening in thread");
+            #[cfg(target_os = "macos")]
             rdev::set_is_main_thread(false); // without this line, any key event will crash the app
-            if let Err(error) = rdev::grab(move |event: rdev::Event| {
+            if let Err(error) = start_grab(move |event: rdev::Event| {
+                println!("event: {:?}", event.clone());
                 let event2 = event.clone();
-                // if window_labels.len() == 0 {
                 let evt = InputEvent::from(event.clone());
                 let event_types = event_types_clone.lock().unwrap();
-                // println!("event_types: {:?}", event_types);
                 if event_types.contains(&evt.event_type) {
                     let window_labels = window_labels_clone.lock().unwrap();
                     for win_label in window_labels.iter() {
@@ -99,6 +105,10 @@ impl<R: Runtime> UserInput<R> {
             }) {
                 println!("Error: {:?}", error)
             }
+            #[cfg(target_os = "linux")]
+            {
+                rdev::enable_grab();
+            }
         });
 
         *rdev_handle = Some(handle);
@@ -108,7 +118,14 @@ impl<R: Runtime> UserInput<R> {
     pub fn stop_listening(&self) -> Result<(), rdev::GrabError> {
         let is_grabbed = rdev::is_grabbed();
         if is_grabbed {
+            #[cfg(target_os = "macos")]
             rdev::exit_grab()?;
+
+            #[cfg(target_os = "linux")]
+            {
+                rdev::disable_grab();
+                rdev::exit_grab_listen();
+            }
         }
         let mut rdev_handle = self.rdev_handle.lock().unwrap();
         if let Some(handle) = rdev_handle.take() {
@@ -131,6 +148,7 @@ impl<R: Runtime> UserInput<R> {
     pub fn set_event_types(&self, event_types: Vec<models::EventType>) -> Result<(), Error> {
         let mut _event_types = self.event_types.lock().unwrap();
         *_event_types = event_types.into_iter().collect();
+        println!("{:?}", *_event_types);
         Ok(())
     }
 
