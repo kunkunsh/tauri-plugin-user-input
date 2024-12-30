@@ -1,9 +1,9 @@
 use enigo::{Keyboard, Mouse};
 use lazy_static::lazy_static;
-#[cfg(target_os = "linux")]
-use rdev::start_grab_listen as start_grab;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use rdev::grab as start_grab;
+#[cfg(target_os = "linux")]
+use rdev::start_grab_listen as start_grab;
 
 use rdev::{EventType, SimulateError};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -57,6 +57,26 @@ fn get_enigo() -> Result<enigo::Enigo, String> {
     enigo::Enigo::new(&enigo::Settings::default()).map_err(|err| format!("Error: {:?}", err))
 }
 
+fn handle_rdev_event<R: Runtime>(
+    event: &rdev::Event,
+    event_types: &HashSet<models::EventType>,
+    window_labels: &Vec<String>,
+    channels: &HashMap<u32, Channel<InputEvent>>,
+    app_handle: &AppHandle<R>,
+) {
+    let evt = InputEvent::from(event.clone());
+    if event_types.contains(&evt.event_type) {
+        for win_label in window_labels.iter() {
+            app_handle.emit_to(win_label, "user-input", &evt).unwrap();
+        }
+        let _ = window_labels;
+        for channel in channels.values() {
+            channel.send(evt.clone()).unwrap();
+        }
+        let _ = channels;
+    }
+}
+
 impl<R: Runtime> UserInput<R> {
     pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
         Ok(PingResponse {
@@ -65,6 +85,7 @@ impl<R: Runtime> UserInput<R> {
     }
 
     pub fn start_listening(&self, on_event: Channel<InputEvent>) -> Result<(), Error> {
+        println!("start_listening");
         let mut on_event_channels = self.on_event_channels.lock().unwrap();
         let event_id = on_event.id();
         on_event_channels.insert(event_id, on_event.clone());
@@ -81,32 +102,48 @@ impl<R: Runtime> UserInput<R> {
         let on_event_channels_clone = self.on_event_channels.clone();
         let event_types_clone = self.event_types.clone();
         let handle = tauri::async_runtime::spawn(async move {
+            println!("start_listening in thread");
             #[cfg(target_os = "macos")]
             rdev::set_is_main_thread(false); // without this line, any key event will crash the app
+
+            #[cfg(any(target_os = "macos", target_os = "windows"))]
             if let Err(error) = start_grab(move |event: rdev::Event| {
-                let event2 = event.clone();
-                let evt = InputEvent::from(event.clone());
-                let event_types = event_types_clone.lock().unwrap();
-                if event_types.contains(&evt.event_type) {
-                    let window_labels = window_labels_clone.lock().unwrap();
-                    for win_label in window_labels.iter() {
-                        app_handle.emit_to(win_label, "user-input", &evt).unwrap();
-                    }
-                    drop(window_labels);
-                    let channels = on_event_channels_clone.lock().unwrap();
-                    for channel in channels.values() {
-                        channel.send(evt.clone()).unwrap();
-                    }
-                    drop(channels);
-                }
-                Some(event2)
+                handle_rdev_event(
+                    &event,
+                    &event_types_clone.lock().unwrap(),
+                    &window_labels_clone.lock().unwrap(),
+                    &on_event_channels_clone.lock().unwrap(),
+                    &app_handle,
+                );
+                Some(event)
             }) {
                 println!("Error: {:?}", error)
             }
+ 
             #[cfg(target_os = "linux")]
             {
-                rdev::enable_grab();
+                println!("start_listening linux");
+                match rdev::listen(move |event: rdev::Event| {
+                    // println!("event: {:?}", event);
+                    handle_rdev_event(
+                        &event,
+                        &event_types_clone.lock().unwrap(),
+                        &window_labels_clone.lock().unwrap(),
+                        &on_event_channels_clone.lock().unwrap(),
+                        &app_handle,
+                    );
+                }) {
+                    Ok(_) => println!("Listening started"),
+                    Err(e) => println!("Error: {:?}", e),
+                };
             }
+
+            #[cfg(target_os = "linux")]
+            {
+                // rdev::enable_grab();
+                // rdev::disable_grab();
+            }
+            println!("Listening stopped");
         });
 
         *rdev_handle = Some(handle);
@@ -182,8 +219,8 @@ impl<R: Runtime> UserInput<R> {
     // }
 
     pub fn text(&self, text: &str) -> Result<(), String> {
-        let mut _enigo = get_enigo()?;
-        // let mut _enigo = ENIGO.0.lock().unwrap();
+        // let mut _enigo = get_enigo()?;
+        let mut _enigo = ENIGO.0.lock().unwrap();
         _enigo
             .text(text)
             .map_err(|err| format!("Error: {:?}", err))?;
