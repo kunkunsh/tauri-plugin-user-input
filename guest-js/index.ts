@@ -1,5 +1,5 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
-import { EventType, Key } from "./types";
+import { EventType, Key, type InputEvent } from "./types";
 export * from "./types";
 
 const pluginPrefix = "plugin:user-input|";
