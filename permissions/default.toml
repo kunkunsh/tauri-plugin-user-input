@@ -1,0 +1,32 @@
+[default]
+description = "Default permissions for the plugin"
+permissions = [
+    "allow-start-listening",
+    "allow-stop-listening",
+    "allow-set-window-labels",
+    "allow-set-event-types",
+    "allow-is-listening",
+    "allow-key",
+    "allow-button",
+    "allow-move-mouse",
+    "allow-scroll",
+    "allow-text",
+]
+
+
+
+# "$schema" = "schemas/schema.json"
+
+# [[permission]]
+# identifier = "all"
+# description = "All permissions for the plugin"
+# commands.allow = [
+#     "start_listening",
+#     "stop_listening",
+#     "set_window_labels",
+#     "key",
+#     "button",
+#     "move_mouse",
+#     "scroll",
+#     "text",
+# ]

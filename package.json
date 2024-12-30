@@ -1,0 +1,39 @@
+{
+  "name": "tauri-plugin-user-input-api",
+  "version": "0.1.0",
+  "author": "Huakun Shen",
+  "description": "",
+  "type": "module",
+  "types": "./dist-js/index.d.ts",
+  "main": "./dist-js/index.cjs",
+  "module": "./dist-js/index.js",
+  "exports": {
+    "types": "./dist-js/index.d.ts",
+    "import": "./dist-js/index.js",
+    "require": "./dist-js/index.cjs"
+  },
+  "files": [
+    "dist-js",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "prepublishOnly": "pnpm build",
+    "pretest": "pnpm build"
+  },
+  "peerDependencies": {
+    "valibot": "1.0.0-beta.9"
+  },
+  "dependencies": {
+    "@tauri-apps/api": ">=2.0.0-beta.6",
+    "request-promise": "^4.2.6"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.6",
+    "rollup": "^4.9.6",
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3",
+    "valibot": "1.0.0-beta.9"
+  },
+  "packageManager": "pnpm@9.14.2"
+}
