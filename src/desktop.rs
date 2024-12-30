@@ -2,8 +2,9 @@ use enigo::{Keyboard, Mouse};
 use lazy_static::lazy_static;
 #[cfg(target_os = "linux")]
 use rdev::start_grab_listen as start_grab;
-#[cfg(target_os = "macos")]
-use rdev::start_grab_listen as start_grab;
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+use rdev::grab as start_grab;
+
 use rdev::{EventType, SimulateError};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
@@ -79,13 +80,10 @@ impl<R: Runtime> UserInput<R> {
         let window_labels_clone = self.window_labels.clone();
         let on_event_channels_clone = self.on_event_channels.clone();
         let event_types_clone = self.event_types.clone();
-        println!("start listening");
         let handle = tauri::async_runtime::spawn(async move {
-            println!("start listening in thread");
             #[cfg(target_os = "macos")]
             rdev::set_is_main_thread(false); // without this line, any key event will crash the app
             if let Err(error) = start_grab(move |event: rdev::Event| {
-                println!("event: {:?}", event.clone());
                 let event2 = event.clone();
                 let evt = InputEvent::from(event.clone());
                 let event_types = event_types_clone.lock().unwrap();
@@ -118,7 +116,7 @@ impl<R: Runtime> UserInput<R> {
     pub fn stop_listening(&self) -> Result<(), rdev::GrabError> {
         let is_grabbed = rdev::is_grabbed();
         if is_grabbed {
-            #[cfg(target_os = "macos")]
+            #[cfg(any(target_os = "macos", target_os = "windows"))]
             rdev::exit_grab()?;
 
             #[cfg(target_os = "linux")]
