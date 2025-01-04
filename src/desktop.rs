@@ -85,7 +85,6 @@ impl<R: Runtime> UserInput<R> {
     }
 
     pub fn start_listening(&self, on_event: Channel<InputEvent>) -> Result<(), Error> {
-        println!("start_listening");
         let mut on_event_channels = self.on_event_channels.lock().unwrap();
         let event_id = on_event.id();
         on_event_channels.insert(event_id, on_event.clone());
@@ -102,12 +101,10 @@ impl<R: Runtime> UserInput<R> {
         let on_event_channels_clone = self.on_event_channels.clone();
         let event_types_clone = self.event_types.clone();
         let handle = tauri::async_runtime::spawn(async move {
-            println!("start_listening in thread");
             #[cfg(target_os = "macos")]
             rdev::set_is_main_thread(false); // without this line, any key event will crash the app
 
-            #[cfg(any(target_os = "macos", target_os = "windows"))]
-            if let Err(error) = start_grab(move |event: rdev::Event| {
+            match rdev::listen(move |event: rdev::Event| {
                 handle_rdev_event(
                     &event,
                     &event_types_clone.lock().unwrap(),
@@ -115,35 +112,10 @@ impl<R: Runtime> UserInput<R> {
                     &on_event_channels_clone.lock().unwrap(),
                     &app_handle,
                 );
-                Some(event)
             }) {
-                println!("Error: {:?}", error)
-            }
- 
-            #[cfg(target_os = "linux")]
-            {
-                println!("start_listening linux");
-                match rdev::listen(move |event: rdev::Event| {
-                    // println!("event: {:?}", event);
-                    handle_rdev_event(
-                        &event,
-                        &event_types_clone.lock().unwrap(),
-                        &window_labels_clone.lock().unwrap(),
-                        &on_event_channels_clone.lock().unwrap(),
-                        &app_handle,
-                    );
-                }) {
-                    Ok(_) => println!("Listening started"),
-                    Err(e) => println!("Error: {:?}", e),
-                };
-            }
-
-            #[cfg(target_os = "linux")]
-            {
-                // rdev::enable_grab();
-                // rdev::disable_grab();
-            }
-            println!("Listening stopped");
+                Ok(_) => println!("Listening started"),
+                Err(e) => println!("Error: {:?}", e),
+            };
         });
 
         *rdev_handle = Some(handle);
@@ -154,7 +126,8 @@ impl<R: Runtime> UserInput<R> {
         let is_grabbed = rdev::is_grabbed();
         if is_grabbed {
             #[cfg(any(target_os = "macos", target_os = "windows"))]
-            rdev::exit_grab()?;
+            rdev::stop_listen().expect("Error stopping listen");
+            // rdev::exit_grab()?;
 
             #[cfg(target_os = "linux")]
             {
@@ -234,20 +207,6 @@ impl<R: Runtime> UserInput<R> {
             .map_err(|err| format!("Error: {:?}", err))?;
         Ok(())
     }
-
-    // pub fn button(
-    //     &self,
-    //     button: rdev::Button,
-    //     evt_type: models::EventType,
-    // ) -> Result<(), rdev::SimulateError> {
-    //     match evt_type {
-    //         models::EventType::ButtonPress => rdev::simulate(&rdev::EventType::ButtonPress(button)),
-    //         models::EventType::ButtonRelease => {
-    //             rdev::simulate(&rdev::EventType::ButtonRelease(button))
-    //         }
-    //         _ => Err(SimulateError),
-    //     }
-    // }
 
     pub fn move_mouse(&self, x: i32, y: i32, coordinate: enigo::Coordinate) -> Result<(), String> {
         let mut _enigo = ENIGO.0.lock().unwrap();

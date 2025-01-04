@@ -12,7 +12,7 @@ links = "tauri-plugin-user-input"
 tauri = { version = "2.1.1" }
 serde = "1.0"
 thiserror = "2"
-rdev = { git = "https://github.com/kunkunsh/rdev.git", branch = "kunkun", features = [
+rdev = { git = "https://github.com/kunkunsh/rdev.git", rev = "0663e6aa3b50fb4daee938fcb02d1a24d89aae22", features = [
     "serialize",
 ] }
 enigo = { version = "0.3.0", features = ["serde"] }
