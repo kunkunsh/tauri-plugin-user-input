@@ -1,5 +1,5 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
-import { EventType, Key } from "./types";
+import { EventType, Key, type InputEvent } from "./types";
 export * from "./types";
 
 const pluginPrefix = "plugin:user-input|";
@@ -40,12 +40,6 @@ export function isListening() {
   return invoke(constructCommandKey("is_listening"));
 }
 
-// export async function key(direction: "Press" | "Release" | "Click", key: Key) {
-//   return await invoke(constructCommandKey("key"), {
-//     key: typeof key === "string" ? key : JSON.stringify(key),
-//     direction,
-//   });
-// }
 export async function key(
   evtType: "KeyPress" | "KeyRelease" | "KeyClick",
   key: Key,
@@ -56,10 +50,6 @@ export async function key(
     evtType,
     delayMs: opts?.delayMs,
   });
-}
-
-export async function selectAll() {
-  return await invoke(constructCommandKey("select_all"));
 }
 
 export function text(text: string) {

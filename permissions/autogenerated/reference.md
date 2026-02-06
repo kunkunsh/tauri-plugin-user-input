@@ -2,6 +2,8 @@
 
 Default permissions for the plugin
 
+#### This default permission set includes the following:
+
 - `allow-start-listening`
 - `allow-stop-listening`
 - `allow-set-window-labels`

@@ -49,7 +49,7 @@
           "minimum": 1.0
         },
         "description": {
-          "description": "Human-readable description of what the permission does. Tauri convention is to use <h4> headings in markdown content for Tauri documentation generation purposes.",
+          "description": "Human-readable description of what the permission does. Tauri convention is to use `<h4>` headings in markdown content for Tauri documentation generation purposes.",
           "type": [
             "string",
             "null"
@@ -111,7 +111,7 @@
           "type": "string"
         },
         "description": {
-          "description": "Human-readable description of what the permission does. Tauri internal convention is to use <h4> headings in markdown content for Tauri documentation generation purposes.",
+          "description": "Human-readable description of what the permission does. Tauri internal convention is to use `<h4>` headings in markdown content for Tauri documentation generation purposes.",
           "type": [
             "string",
             "null"
@@ -297,107 +297,128 @@
         {
           "description": "Enables the button command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-button"
+          "const": "allow-button",
+          "markdownDescription": "Enables the button command without any pre-configured scope."
         },
         {
           "description": "Denies the button command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-button"
+          "const": "deny-button",
+          "markdownDescription": "Denies the button command without any pre-configured scope."
         },
         {
           "description": "Enables the is_listening command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-is-listening"
+          "const": "allow-is-listening",
+          "markdownDescription": "Enables the is_listening command without any pre-configured scope."
         },
         {
           "description": "Denies the is_listening command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-is-listening"
+          "const": "deny-is-listening",
+          "markdownDescription": "Denies the is_listening command without any pre-configured scope."
         },
         {
           "description": "Enables the key command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-key"
+          "const": "allow-key",
+          "markdownDescription": "Enables the key command without any pre-configured scope."
         },
         {
           "description": "Denies the key command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-key"
+          "const": "deny-key",
+          "markdownDescription": "Denies the key command without any pre-configured scope."
         },
         {
           "description": "Enables the move_mouse command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-move-mouse"
+          "const": "allow-move-mouse",
+          "markdownDescription": "Enables the move_mouse command without any pre-configured scope."
         },
         {
           "description": "Denies the move_mouse command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-move-mouse"
+          "const": "deny-move-mouse",
+          "markdownDescription": "Denies the move_mouse command without any pre-configured scope."
         },
         {
           "description": "Enables the scroll command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-scroll"
+          "const": "allow-scroll",
+          "markdownDescription": "Enables the scroll command without any pre-configured scope."
         },
         {
           "description": "Denies the scroll command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-scroll"
+          "const": "deny-scroll",
+          "markdownDescription": "Denies the scroll command without any pre-configured scope."
         },
         {
           "description": "Enables the set_event_types command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-set-event-types"
+          "const": "allow-set-event-types",
+          "markdownDescription": "Enables the set_event_types command without any pre-configured scope."
         },
         {
           "description": "Denies the set_event_types command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-set-event-types"
+          "const": "deny-set-event-types",
+          "markdownDescription": "Denies the set_event_types command without any pre-configured scope."
         },
         {
           "description": "Enables the set_window_labels command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-set-window-labels"
+          "const": "allow-set-window-labels",
+          "markdownDescription": "Enables the set_window_labels command without any pre-configured scope."
         },
         {
           "description": "Denies the set_window_labels command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-set-window-labels"
+          "const": "deny-set-window-labels",
+          "markdownDescription": "Denies the set_window_labels command without any pre-configured scope."
         },
         {
           "description": "Enables the start_listening command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-start-listening"
+          "const": "allow-start-listening",
+          "markdownDescription": "Enables the start_listening command without any pre-configured scope."
         },
         {
           "description": "Denies the start_listening command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-start-listening"
+          "const": "deny-start-listening",
+          "markdownDescription": "Denies the start_listening command without any pre-configured scope."
         },
         {
           "description": "Enables the stop_listening command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-stop-listening"
+          "const": "allow-stop-listening",
+          "markdownDescription": "Enables the stop_listening command without any pre-configured scope."
         },
         {
           "description": "Denies the stop_listening command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-stop-listening"
+          "const": "deny-stop-listening",
+          "markdownDescription": "Denies the stop_listening command without any pre-configured scope."
         },
         {
           "description": "Enables the text command without any pre-configured scope.",
           "type": "string",
-          "const": "allow-text"
+          "const": "allow-text",
+          "markdownDescription": "Enables the text command without any pre-configured scope."
         },
         {
           "description": "Denies the text command without any pre-configured scope.",
           "type": "string",
-          "const": "deny-text"
+          "const": "deny-text",
+          "markdownDescription": "Denies the text command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin",
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-start-listening`\n- `allow-stop-listening`\n- `allow-set-window-labels`\n- `allow-set-event-types`\n- `allow-is-listening`\n- `allow-key`\n- `allow-button`\n- `allow-move-mouse`\n- `allow-scroll`\n- `allow-text`",
           "type": "string",
-          "const": "default"
+          "const": "default",
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-start-listening`\n- `allow-stop-listening`\n- `allow-set-window-labels`\n- `allow-set-event-types`\n- `allow-is-listening`\n- `allow-key`\n- `allow-button`\n- `allow-move-mouse`\n- `allow-scroll`\n- `allow-text`"
         }
       ]
     }

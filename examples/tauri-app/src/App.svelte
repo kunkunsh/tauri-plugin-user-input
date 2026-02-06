@@ -10,7 +10,6 @@
     stopListening,
     key,
     text,
-    selectAll,
     button,
     moveMouse,
   } from "tauri-plugin-user-input-api";
@@ -34,6 +33,7 @@
     ButtonPress: false,
     ButtonRelease: false,
     MouseMove: false,
+    MouseDragged: false,
     Wheel: false,
   });
 

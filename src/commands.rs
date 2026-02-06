@@ -40,14 +40,14 @@ pub(crate) async fn start_listening<R: Runtime>(
 pub(crate) async fn stop_listening<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     app.user_input()
         .stop_listening()
-        .map_err(|_| "Failed to stop listening")?;
+        .map_err(|e| format!("Failed to stop listening: {}", e))?;
     Ok(())
 }
 
 #[command]
 pub(crate) async fn key<R: Runtime>(
     app: AppHandle<R>,
-    key: rdev::Key,
+    key: monio::Key,
     evt_type: models::EventType,
     delay_ms: Option<u64>,
 ) -> Result<(), String> {
