@@ -1,7 +1,4 @@
-use std::{
-    str::FromStr,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::UNIX_EPOCH;
 
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +26,7 @@ pub struct InputEvent {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum InputEventData {
-    Button(rdev::Button),
+    Button(monio::Button),
     Position {
         x: f64,
         y: f64,
@@ -40,7 +37,7 @@ pub enum InputEventData {
         #[serde(rename = "deltaY")]
         delta_y: i64,
     },
-    Key(rdev::Key),
+    Key(monio::Key),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Serialize, Deserialize, Eq, Hash)]
@@ -52,57 +49,86 @@ pub enum EventType {
     ButtonRelease,
     ButtonClick,
     MouseMove,
+    MouseDragged,
     Wheel,
 }
 
-impl From<rdev::Event> for InputEvent {
-    fn from(event: rdev::Event) -> Self {
+impl From<monio::Event> for InputEvent {
+    fn from(event: monio::Event) -> Self {
         let data = match event.event_type {
-            rdev::EventType::ButtonPress(btn) | rdev::EventType::ButtonRelease(btn) => {
-                InputEventData::Button(btn)
+            monio::EventType::MousePressed
+            | monio::EventType::MouseReleased
+            | monio::EventType::MouseClicked => {
+                if let Some(mouse) = &event.mouse {
+                    InputEventData::Button(mouse.button.unwrap_or(monio::Button::Unknown(0)))
+                } else {
+                    InputEventData::Button(monio::Button::Unknown(0))
+                }
             }
-            rdev::EventType::MouseMove { x, y } => InputEventData::Position { x, y },
-            rdev::EventType::Wheel { delta_x, delta_y } => {
-                InputEventData::DeltaPosition { delta_x, delta_y }
+            monio::EventType::MouseMoved | monio::EventType::MouseDragged => {
+                if let Some(mouse) = &event.mouse {
+                    InputEventData::Position {
+                        x: mouse.x,
+                        y: mouse.y,
+                    }
+                } else {
+                    InputEventData::Position { x: 0.0, y: 0.0 }
+                }
             }
-            rdev::EventType::KeyPress(key) | rdev::EventType::KeyRelease(key) => {
-                InputEventData::Key(key)
+            monio::EventType::MouseWheel => {
+                if let Some(wheel) = &event.wheel {
+                    let (delta_x, delta_y) = match wheel.direction {
+                        monio::ScrollDirection::Up => (0, wheel.delta as i64),
+                        monio::ScrollDirection::Down => (0, -(wheel.delta as i64)),
+                        monio::ScrollDirection::Left => (-(wheel.delta as i64), 0),
+                        monio::ScrollDirection::Right => (wheel.delta as i64, 0),
+                    };
+                    InputEventData::DeltaPosition { delta_x, delta_y }
+                } else {
+                    InputEventData::DeltaPosition {
+                        delta_x: 0,
+                        delta_y: 0,
+                    }
+                }
+            }
+            monio::EventType::KeyPressed
+            | monio::EventType::KeyReleased
+            | monio::EventType::KeyTyped => {
+                if let Some(kb) = &event.keyboard {
+                    InputEventData::Key(kb.key)
+                } else {
+                    InputEventData::Key(monio::Key::Unknown(0))
+                }
+            }
+            monio::EventType::HookEnabled | monio::EventType::HookDisabled => {
+                InputEventData::Key(monio::Key::Unknown(0))
             }
         };
 
         let event_type = match event.event_type {
-            rdev::EventType::KeyPress(_) => EventType::KeyPress,
-            rdev::EventType::KeyRelease(_) => EventType::KeyRelease,
-            rdev::EventType::ButtonPress(_) => EventType::ButtonPress,
-            rdev::EventType::ButtonRelease(_) => EventType::ButtonRelease,
-            rdev::EventType::MouseMove { .. } => EventType::MouseMove,
-            rdev::EventType::Wheel { .. } => EventType::Wheel,
+            monio::EventType::KeyPressed => EventType::KeyPress,
+            monio::EventType::KeyReleased | monio::EventType::KeyTyped => EventType::KeyRelease,
+            monio::EventType::MousePressed => EventType::ButtonPress,
+            monio::EventType::MouseReleased | monio::EventType::MouseClicked => {
+                EventType::ButtonRelease
+            }
+            monio::EventType::MouseMoved => EventType::MouseMove,
+            monio::EventType::MouseDragged => EventType::MouseDragged,
+            monio::EventType::MouseWheel => EventType::Wheel,
+            monio::EventType::HookEnabled | monio::EventType::HookDisabled => EventType::KeyPress, // fallback, these won't typically be emitted
         };
 
         Self {
             event_type,
-            time: event.time.duration_since(UNIX_EPOCH).unwrap().as_millis(),
+            time: event
+                .time
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis(),
             data,
         }
     }
 }
-
-// #[derive(Debug)]
-// pub struct Key(enigo::Key);
-
-// impl FromStr for Key {
-//     type Err = ();
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         // Add proper string-to-key conversion logic here
-//         let key: enigo::Key = serde_json::from_str(&format!("\"{}\"", s)).map_err(|_| ())?;
-//         Ok(Key(key))
-//     }
-// }
-
-// #[derive(Debug, Serialize, Deserialize, Clone)]
-// struct KeyComb {
-//     keys: Vec<enigo::Key>,
-// }
 
 #[cfg(test)]
 mod tests {

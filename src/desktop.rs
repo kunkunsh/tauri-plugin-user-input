@@ -1,30 +1,21 @@
 use enigo::{Keyboard, Mouse};
-use lazy_static::lazy_static;
-#[cfg(any(target_os = "macos", target_os = "windows"))]
-use rdev::grab as start_grab;
-#[cfg(target_os = "linux")]
-use rdev::start_grab_listen as start_grab;
-
-use rdev::{EventType, SimulateError};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 use std::{
     collections::{HashMap, HashSet},
-    str::FromStr,
-    sync::{Arc, Mutex},
-    time::SystemTime,
+    sync::{Arc, LazyLock, Mutex},
 };
-use tauri::{
-    async_runtime::JoinHandle, ipc::Channel, plugin::PluginApi, AppHandle, Emitter, Manager,
-    Runtime,
-};
+use tauri::{ipc::Channel, plugin::PluginApi, AppHandle, Emitter, Runtime};
 
 struct SafeEnigo(Mutex<enigo::Enigo>);
 
+unsafe impl Send for SafeEnigo {}
 unsafe impl Sync for SafeEnigo {}
 
-lazy_static::lazy_static! {
-    static ref ENIGO: SafeEnigo = SafeEnigo(Mutex::new(enigo::Enigo::new(&enigo::Settings::default()).unwrap()));
-}
+static ENIGO: LazyLock<SafeEnigo> = LazyLock::new(|| {
+    SafeEnigo(Mutex::new(
+        enigo::Enigo::new(&enigo::Settings::default()).unwrap(),
+    ))
+});
 
 use crate::{
     models::{self, *},
@@ -37,62 +28,48 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 ) -> crate::Result<UserInput<R>> {
     Ok(UserInput {
         app_handle: app.clone(),
-        rdev_handle: Mutex::new(None),
+        hook: Arc::new(Mutex::new(None)),
         window_labels: Arc::new(Mutex::new(vec![])),
         event_types: Arc::new(Mutex::new(HashSet::new())),
         on_event_channels: Arc::new(Mutex::new(HashMap::new())),
     })
 }
 
-/// Access to the user-input APIs.
 pub struct UserInput<R: Runtime> {
     app_handle: AppHandle<R>,
-    rdev_handle: Mutex<Option<JoinHandle<()>>>,
+    hook: Arc<Mutex<Option<monio::Hook>>>,
     window_labels: Arc<Mutex<Vec<String>>>,
     event_types: Arc<Mutex<HashSet<models::EventType>>>,
     on_event_channels: Arc<Mutex<HashMap<u32, Channel<InputEvent>>>>,
 }
 
-fn get_enigo() -> Result<enigo::Enigo, String> {
-    enigo::Enigo::new(&enigo::Settings::default()).map_err(|err| format!("Error: {:?}", err))
-}
-
-fn handle_rdev_event<R: Runtime>(
-    event: &rdev::Event,
+fn handle_monio_event<R: Runtime>(
+    event: &monio::Event,
     event_types: &HashSet<models::EventType>,
-    window_labels: &Vec<String>,
+    window_labels: &[String],
     channels: &HashMap<u32, Channel<InputEvent>>,
     app_handle: &AppHandle<R>,
 ) {
     let evt = InputEvent::from(event.clone());
     if event_types.contains(&evt.event_type) {
         for win_label in window_labels.iter() {
-            app_handle.emit_to(win_label, "user-input", &evt).unwrap();
+            let _ = app_handle.emit_to(win_label, "user-input", &evt);
         }
-        let _ = window_labels;
         for channel in channels.values() {
-            channel.send(evt.clone()).unwrap();
+            let _ = channel.send(evt.clone());
         }
-        let _ = channels;
     }
 }
 
 impl<R: Runtime> UserInput<R> {
-    pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
-        Ok(PingResponse {
-            value: payload.value,
-        })
-    }
-
     pub fn start_listening(&self, on_event: Channel<InputEvent>) -> Result<(), Error> {
         let mut on_event_channels = self.on_event_channels.lock().unwrap();
         let event_id = on_event.id();
         on_event_channels.insert(event_id, on_event.clone());
         drop(on_event_channels);
 
-        // skip if rdev_handle is already set
-        let mut rdev_handle = self.rdev_handle.lock().unwrap();
-        if rdev_handle.is_some() {
+        let mut hook_guard = self.hook.lock().unwrap();
+        if hook_guard.is_some() {
             return Ok(());
         }
 
@@ -100,50 +77,33 @@ impl<R: Runtime> UserInput<R> {
         let window_labels_clone = self.window_labels.clone();
         let on_event_channels_clone = self.on_event_channels.clone();
         let event_types_clone = self.event_types.clone();
-        let handle = tauri::async_runtime::spawn(async move {
-            #[cfg(target_os = "macos")]
-            rdev::set_is_main_thread(false); // without this line, any key event will crash the app
 
-            match rdev::listen(move |event: rdev::Event| {
-                handle_rdev_event(
-                    &event,
-                    &event_types_clone.lock().unwrap(),
-                    &window_labels_clone.lock().unwrap(),
-                    &on_event_channels_clone.lock().unwrap(),
-                    &app_handle,
-                );
-            }) {
-                Ok(_) => println!("Listening started"),
-                Err(e) => println!("Error: {:?}", e),
-            };
-        });
+        let hook = monio::Hook::new();
+        match hook.run_async(move |event: &monio::Event| {
+            handle_monio_event(
+                event,
+                &event_types_clone.lock().unwrap(),
+                &window_labels_clone.lock().unwrap(),
+                &on_event_channels_clone.lock().unwrap(),
+                &app_handle,
+            );
+        }) {
+            Ok(_) => println!("Listening started"),
+            Err(e) => println!("Error: {:?}", e),
+        };
 
-        *rdev_handle = Some(handle);
+        *hook_guard = Some(hook);
         Ok(())
     }
 
-    pub fn stop_listening(&self) -> Result<(), rdev::GrabError> {
-        let is_grabbed = rdev::is_grabbed();
-        if is_grabbed {
-            #[cfg(any(target_os = "macos", target_os = "windows"))]
-            rdev::stop_listen().expect("Error stopping listen");
-            // rdev::exit_grab()?;
-
-            #[cfg(target_os = "linux")]
-            {
-                rdev::disable_grab();
-                rdev::exit_grab_listen();
-            }
-        }
-        let mut rdev_handle = self.rdev_handle.lock().unwrap();
-        if let Some(handle) = rdev_handle.take() {
-            handle.abort();
+    pub fn stop_listening(&self) -> Result<(), String> {
+        let mut hook_guard = self.hook.lock().unwrap();
+        if let Some(hook) = hook_guard.take() {
+            hook.stop()
+                .map_err(|e| format!("Failed to stop hook: {:?}", e))?;
         }
         let mut on_event_channels = self.on_event_channels.lock().unwrap();
-        // remove all channels
         on_event_channels.clear();
-        assert_eq!(on_event_channels.len(), 0);
-        assert!(rdev_handle.is_none());
         Ok(())
     }
 
@@ -161,38 +121,23 @@ impl<R: Runtime> UserInput<R> {
     }
 
     pub fn is_listening(&self) -> bool {
-        rdev::is_grabbed()
+        self.hook.lock().unwrap().is_some()
     }
     /* -------------------------------------------------------------------------- */
-    /*                                 enigo APIs                                 */
+    /*                                 Key APIs                                   */
     /* -------------------------------------------------------------------------- */
-    /// enigo's key method cause crash on MacOS, so we use rdev to simulate the key event
-    pub fn key(&self, key: rdev::Key, evt_type: models::EventType) -> Result<(), SimulateError> {
+    pub fn key(&self, key: monio::Key, evt_type: models::EventType) -> Result<(), String> {
         match evt_type {
-            models::EventType::KeyPress => rdev::simulate(&EventType::KeyPress(key)),
-            models::EventType::KeyRelease => rdev::simulate(&EventType::KeyRelease(key)),
-            models::EventType::KeyClick => match rdev::simulate(&EventType::KeyPress(key)) {
-                Ok(_) => match rdev::simulate(&EventType::KeyRelease(key)) {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(e),
-                },
-                Err(e) => Err(e),
-            },
-            _ => Err(SimulateError),
+            models::EventType::KeyPress => monio::key_press(key).map_err(|e| format!("{:?}", e)),
+            models::EventType::KeyRelease => {
+                monio::key_release(key).map_err(|e| format!("{:?}", e))
+            }
+            models::EventType::KeyClick => monio::key_tap(key).map_err(|e| format!("{:?}", e)),
+            _ => Err("Invalid event type for key simulation".to_string()),
         }
     }
-    // pub fn key(&self, key: enigo::Key, direction: enigo::Direction) -> Result<(), String> {
-    //     println!("desktop: key: {:?}, direction: {:?}", key, direction);
-    //     let mut _enigo = ENIGO.0.lock().unwrap();
-    //     _enigo.key(key, direction).unwrap();
-    //     // let mut _enigo = get_enigo()?;
-    //     // _enigo.key(key, direction).unwrap();
-    //     //     .map_err(|err| format!("Error: {:?}", err))?;
-    //     Ok(())
-    // }
 
     pub fn text(&self, text: &str) -> Result<(), String> {
-        // let mut _enigo = get_enigo()?;
         let mut _enigo = ENIGO.0.lock().unwrap();
         _enigo
             .text(text)
@@ -231,21 +176,17 @@ mod tests {
 
     #[test]
     fn test_key() {
-        // let mut _enigo1 = get_enigo().unwrap();
         let mut _enigo = ENIGO.0.lock().unwrap();
 
         _enigo
             .key(enigo::Key::Meta, enigo::Direction::Press)
             .unwrap();
-        // let mut _enigo2 = get_enigo().unwrap();
         _enigo
             .key(enigo::Key::Unicode('A'), enigo::Direction::Press)
             .unwrap();
-        // let mut _enigo3 = get_enigo().unwrap();
         _enigo
             .key(enigo::Key::Meta, enigo::Direction::Release)
             .unwrap();
-        // let mut _enigo4 = get_enigo().unwrap();
         _enigo
             .key(enigo::Key::Unicode('A'), enigo::Direction::Release)
             .unwrap();

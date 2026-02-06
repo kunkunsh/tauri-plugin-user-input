@@ -4,20 +4,20 @@ version = "0.1.0"
 authors = ["Huakun Shen"]
 description = "Tauri plugin for user input (monitor and simulate keyboard and mouse events)"
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.80.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/HuakunShen/tauri-plugin-user-input"
+readme = "README.md"
 exclude = ["/examples", "/webview-dist", "/webview-src", "/node_modules"]
 links = "tauri-plugin-user-input"
 
 [dependencies]
-tauri = { version = "2.1.1" }
-serde = "1.0"
+tauri = { version = "2" }
+serde = { version = "1.0", features = ["derive"] }
 thiserror = "2"
-rdev = { git = "https://github.com/kunkunsh/rdev.git", rev = "0663e6aa3b50fb4daee938fcb02d1a24d89aae22", features = [
-    "serialize",
-] }
 enigo = { version = "0.3.0", features = ["serde"] }
-serde_json = "1.0.134"
-lazy_static = "1.5.0"
+serde_json = "1.0"
+monio = { version = "0.1.1", features = ["recorder"] }
 
 [build-dependencies]
-tauri-plugin = { version = "2.0.3", features = ["build"] }
+tauri-plugin = { version = "2", features = ["build"] }
