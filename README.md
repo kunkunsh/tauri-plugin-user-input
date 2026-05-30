@@ -197,6 +197,28 @@ Events received in the `startListening` callback have this shape:
 }
 ```
 
+## Quick Start (in this repo)
+
+If you want a practical integration reference, use the sample app in `examples/tauri-app/`:
+
+- Plugin is registered in `examples/tauri-app/src-tauri/src/lib.rs`:
+  - `.plugin(tauri_plugin_os::init())`
+  - `.plugin(tauri_plugin_user_input::init())`
+- Capabilities are set in `examples/tauri-app/src-tauri/capabilities/default.json`:
+  - `core:default`
+  - `os:default`
+  - `user-input:default`
+- Frontend API dependency is `tauri-plugin-user-input-api` (local link in `examples/tauri-app/package.json`).
+- The app flow is in `examples/tauri-app/src/App.svelte`:
+  1. `setEventTypes([...])`
+  2. `startListening((evt) => { ... })`
+  3. `stopListening()`
+  4. Optional simulation calls: `key`, `text`, `button`, `moveMouse`, `scroll`
+
+For AI-guided usage and full command surface, also read:
+
+- [skills/tauri-plugin-user-input/SKILL.md](skills/tauri-plugin-user-input/SKILL.md)
+
 ## License
 
 MIT OR Apache-2.0
