@@ -7,16 +7,22 @@ Uses [monio](https://github.com/HuakunShen/monio) for event listening and key si
 ## Platform Support
 
 | Platform | Monitoring | Simulation |
-|----------|-----------|------------|
-| macOS    | Yes       | Yes        |
-| Windows  | Yes       | Yes        |
-| Linux    | Partial   | Partial    |
-| iOS      | No        | No         |
-| Android  | No        | No         |
+| -------- | ---------- | ---------- |
+| macOS    | Yes        | Yes        |
+| Windows  | Yes        | Yes        |
+| Linux    | Partial    | Partial    |
+| iOS      | No         | No         |
+| Android  | No         | No         |
 
 > **macOS**: Requires Accessibility permissions (System Settings > Privacy & Security > Accessibility).
 
 > **Linux**: X11 is supported. Wayland support is limited. See [monio docs](https://github.com/HuakunShen/monio) for details.
+
+## Skill For AI
+
+```bash
+npx skills add https://github.com/HuakunShen/monio-napi
+```
 
 ## Installation
 
@@ -56,10 +62,7 @@ Add the plugin permissions to your app's capabilities file (`src-tauri/capabilit
 
 ```json
 {
-  "permissions": [
-    "core:default",
-    "user-input:default"
-  ]
+  "permissions": ["core:default", "user-input:default"]
 }
 ```
 
@@ -85,9 +88,19 @@ import {
 Before listening, set which event types you want to receive:
 
 ```typescript
-import { setEventTypes, startListening, stopListening } from "tauri-plugin-user-input-api";
+import {
+  setEventTypes,
+  startListening,
+  stopListening,
+} from "tauri-plugin-user-input-api";
 
-await setEventTypes(["KeyPress", "KeyRelease", "MouseMove", "ButtonPress", "Wheel"]);
+await setEventTypes([
+  "KeyPress",
+  "KeyRelease",
+  "MouseMove",
+  "ButtonPress",
+  "Wheel",
+]);
 
 await startListening((event) => {
   console.log("Event:", event.eventType, event);
